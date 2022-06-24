@@ -1,6 +1,5 @@
 use bio::data_structures::interval_tree::{IntervalTree};
-use bio::utils::Interval;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ptr;
 
 
@@ -8,48 +7,48 @@ use std::ptr;
  Stores one bed line.
  */
 #[derive(Debug)]
-pub struct bed_record<T> {
+pub struct BedRecord<T> {
     chr:    String,
     start:  u64,
     end:    u64,
     attr:   T,
 }
 
-impl<T> bed_record<T> {
+impl<T> BedRecord<T> {
     pub fn new(chr: String, start: u64, end: u64, attr: T) -> Self {
-        bed_record{chr: chr, start: start, end: end, attr: attr}
+        BedRecord{chr: chr, start: start, end: end, attr: attr}
     }
 }
 
 
 
 /*
- Stores multiple bed_record objects.
+ Stores multiple BedRecord objects.
  */
 #[derive(Debug)]
-pub struct bed_records<T> {
-    map: HashMap<String, Vec<bed_record<T>>>,  // (name of chr, vec)
+pub struct BedRecords<T> {
+    map: HashMap<String, Vec<BedRecord<T>>>,  // (name of chr, vec)
     chrs: Vec<String>,
     is_sorted: HashMap<String, bool>,
     sorted_chrs: Vec<String>,
     is_chr_sorted: bool,
 }
 
-impl<T> bed_records<T> {
+impl<T> BedRecords<T> {
     pub fn new() -> Self {
-        bed_records{map: HashMap::<String, Vec<bed_record<T>>>::new(), 
-                    chrs: Vec::<String>::new(), 
-                    sorted_chrs: Vec::<String>::new(),
-                    is_sorted: HashMap::<String, bool>::new(),
-                    is_chr_sorted: false}
+        BedRecords{map: HashMap::<String, Vec<BedRecord<T>>>::new(), 
+                   chrs: Vec::<String>::new(), 
+                   sorted_chrs: Vec::<String>::new(),
+                   is_sorted: HashMap::<String, bool>::new(),
+                   is_chr_sorted: false}
     }
     
-    pub fn push(&mut self, r: bed_record<T>) {
+    pub fn push(&mut self, r: BedRecord<T>) {
         let chr = r.chr.clone();
         match self.map.get_mut(&(r.chr)) {
             Some(v) => v.push(r),
             None => {
-                let mut v = Vec::<bed_record<T>>::new();
+                let mut v = Vec::<BedRecord<T>>::new();
                 v.push(r);
                 self.map.insert(chr.clone(), v);
                 self.is_sorted.insert(chr.clone(), false);
@@ -116,12 +115,12 @@ impl<T> bed_records<T> {
 
 
 
-pub fn intersect_wa<'a, T1, T2>(a: &'a mut bed_records<T1>, 
-                                b: &'a mut bed_records<T2>, 
+pub fn intersect_wa<'a, T1, T2>(a: &'a mut BedRecords<T1>, 
+                                b: &'a mut BedRecords<T2>, 
                                 allow_duplicate: bool) 
-        -> (Vec<String>, HashMap::<String, Vec<&'a bed_record<T1>>>) {
+        -> (Vec<String>, HashMap::<String, Vec<&'a BedRecord<T1>>>) {
     // make a vector
-    let mut intersect_map: HashMap<String, Vec<&'a bed_record<T1>>> = HashMap::new();
+    let mut intersect_map: HashMap<String, Vec<&'a BedRecord<T1>>> = HashMap::new();
     let mut intersect_chrs: Vec<String> = Vec::new();
 
     // construct tree
@@ -155,7 +154,7 @@ pub fn intersect_wa<'a, T1, T2>(a: &'a mut bed_records<T1>,
                         }
                     },
                     None => {
-                        let mut v: Vec<&'a bed_record<T1>> = Vec::new();
+                        let mut v: Vec<&'a BedRecord<T1>> = Vec::new();
                         v.push(i.data());
                         intersect_map.insert(chr.to_string(), v);
                         intersect_chrs.push(chr.to_string());
@@ -168,11 +167,11 @@ pub fn intersect_wa<'a, T1, T2>(a: &'a mut bed_records<T1>,
 }
 
 
-pub fn intersect_wawb<'a, T1, T2>(a: &'a mut bed_records<T1>, 
-                                  b: &'a mut bed_records<T2>) 
-        -> (Vec<String>, HashMap::<String, Vec<(&'a bed_record<T1>, &'a bed_record<T2>)>>) {
+pub fn intersect_wawb<'a, T1, T2>(a: &'a mut BedRecords<T1>, 
+                                  b: &'a mut BedRecords<T2>) 
+        -> (Vec<String>, HashMap::<String, Vec<(&'a BedRecord<T1>, &'a BedRecord<T2>)>>) {
     // make a vector
-    let mut intersect_map: HashMap<String, Vec<(&'a bed_record<T1>, &'a bed_record<T2>)>> = HashMap::new();
+    let mut intersect_map: HashMap<String, Vec<(&'a BedRecord<T1>, &'a BedRecord<T2>)>> = HashMap::new();
     let mut intersect_chrs: Vec<String> = Vec::new();
     
     // construct tree
@@ -191,7 +190,7 @@ pub fn intersect_wawb<'a, T1, T2>(a: &'a mut bed_records<T1>,
                 match intersect_map.get_mut(chr) {
                     Some(v) => v.push((i.data(), r)),
                     None => {
-                        let mut v = Vec::<(&'a bed_record<T1>, &'a bed_record<T2>)>::new();
+                        let mut v = Vec::<(&'a BedRecord<T1>, &'a BedRecord<T2>)>::new();
                         v.push((i.data(), r));
                         intersect_map.insert(chr.to_string(), v);
                         intersect_chrs.push(chr.to_string());
@@ -204,18 +203,17 @@ pub fn intersect_wawb<'a, T1, T2>(a: &'a mut bed_records<T1>,
 }
 
 
-pub fn intersect_v<'a, T1, T2>(a: &'a mut bed_records<T1>, 
-                               b: &'a mut bed_records<T2>) 
-        -> (Vec<String>, HashMap::<String, Vec<&'a bed_record<T1>>>) {
+pub fn intersect_v<'a, T1, T2>(a: &'a mut BedRecords<T1>, 
+                               b: &'a mut BedRecords<T2>) 
+        -> (Vec<String>, HashMap::<String, Vec<&'a BedRecord<T1>>>) {
     // make a vector
-    let mut intersect_map: HashMap<String, Vec<&'a bed_record<T1>>> = HashMap::new();
+    let mut intersect_map: HashMap<String, Vec<&'a BedRecord<T1>>> = HashMap::new();
     let mut intersect_chrs: Vec<String> = Vec::new();
-    let mut intersected: HashSet<&'a bed_record<T1>> = HashSet::new();
     
     // construct tree
     let mut tree;
-    let mut n: u64 = 0;
-    let mut v: Vec<&'a bed_record<T1>>;
+    let mut n: u64;
+    let mut v: Vec<&'a BedRecord<T1>>;
     
     // sort
     if ! a.is_chr_sorted { a.sort_chrnames(); }
@@ -237,7 +235,7 @@ pub fn intersect_v<'a, T1, T2>(a: &'a mut bed_records<T1>,
             }
             for r in &(a.map[chr]) {
                 n=0;
-                for i in tree.find(r.start .. r.end) {
+                for _ in tree.find(r.start .. r.end) {
                     n += 1;
                 }
                 if n == 0 {
@@ -254,69 +252,72 @@ pub fn intersect_v<'a, T1, T2>(a: &'a mut bed_records<T1>,
 }
 
 
-/*
- This takes two bed_records objs,
- and returns one vector containing pointers to intersected bed_record.
- */
-#[test]
-fn test_intersect() {
-    let bed1 = bed_record::new("chr1".to_string(), 100, 200, vec!["aa", "bb"]);
-    let bed2 = bed_record::new("chr1".to_string(), 150, 250, vec!["cc", "dd"]);
-    let bed3 = bed_record::new("chr2".to_string(), 100, 200, vec!["ccc", "ddd"]);
-    let bed4 = bed_record::new("chr2".to_string(), 150, 250, vec!["ccc", "ddd"]);
-    let bed5 = bed_record::new("chr1".to_string(), 120, 140, vec![11, 22]);
-    let bed6 = bed_record::new("chr2".to_string(), 120, 130, vec![111, 222]);
 
-    let mut bed_a = bed_records::new();
-    let mut bed_b = bed_records::new();
-    bed_a.push(bed1);
-    bed_a.push(bed2);
-    bed_a.push(bed3);
-    bed_a.push(bed4);
-    bed_b.push(bed5);
-    bed_b.push(bed6);
-    
-    // test wa, bed_b should be sorted (otherwise, it will be sorted inside of intersection func)
-    let ALLOW_DUPLICATE = false;  // default should be false
-    bed_b.sort_allchr();  // recommend to sort before intersect
-    let (chrs, intersect) = intersect_wa(&mut bed_a, &mut bed_b, ALLOW_DUPLICATE);
-    for chr in &chrs {
-        match intersect.get(chr) {
-            Some(v) => {
-                for record in v {
-                    println!("{:?}", record);
-                }
-            },
-            None => println!("{chr} was not found in HashMap")
+#[cfg(test)]
+mod tests {
+    use crate::intersect::*;
+
+    #[test]
+    fn test_intersect() {
+        let bed1 = BedRecord::new("chr1".to_string(), 100, 200, vec!["aa", "bb"]);
+        let bed2 = BedRecord::new("chr1".to_string(), 150, 250, vec!["cc", "dd"]);
+        let bed3 = BedRecord::new("chr2".to_string(), 100, 200, vec!["ccc", "ddd"]);
+        let bed4 = BedRecord::new("chr2".to_string(), 150, 250, vec!["ccc", "ddd"]);
+        let bed5 = BedRecord::new("chr1".to_string(), 120, 140, vec![11, 22]);
+        let bed6 = BedRecord::new("chr2".to_string(), 120, 130, vec![111, 222]);
+
+        let mut bed_a = BedRecords::new();
+        let mut bed_b = BedRecords::new();
+        bed_a.push(bed1);
+        bed_a.push(bed2);
+        bed_a.push(bed3);
+        bed_a.push(bed4);
+        bed_b.push(bed5);
+        bed_b.push(bed6);
+        
+        // test wa, bed_b should be sorted (otherwise, it will be sorted inside of intersection func)
+        let ALLOW_DUPLICATE = false;  // default should be false
+        bed_b.sort_allchr();  // recommend to sort before intersect
+        let (chrs, intersect) = intersect_wa(&mut bed_a, &mut bed_b, ALLOW_DUPLICATE);
+        for chr in &chrs {
+            match intersect.get(chr) {
+                Some(v) => {
+                    for record in v {
+                        println!("{:?}", record);
+                    }
+                },
+                None => println!("{chr} was not found in HashMap")
+            }
         }
-    }
-    println!("");
-    
-    // test wa wb
-    let (chrs, intersect) = intersect_wawb(&mut bed_a, &mut bed_b);
-    for chr in &chrs {
-        match intersect.get(chr) {
-            Some(v) => {
-                for (ra, rb) in v {
-                    println!("{:?} : {:?}", ra, rb);
-                }
-            },
-            None => println!("{chr} was not found in HashMap")
+        println!("");
+        
+        // test wa wb
+        let (chrs, intersect) = intersect_wawb(&mut bed_a, &mut bed_b);
+        for chr in &chrs {
+            match intersect.get(chr) {
+                Some(v) => {
+                    for (ra, rb) in v {
+                        println!("{:?} : {:?}", ra, rb);
+                    }
+                },
+                None => println!("{chr} was not found in HashMap")
+            }
         }
-    }
-    println!("");
-    
-    // test v
-    let (chrs, intersect) = intersect_v(&mut bed_a, &mut bed_b);
-    for chr in &chrs {
-        match intersect.get(chr) {
-            Some(v) => {
-                for record in v {
-                    println!("{:?}", record);
-                }
-            },
-            None => println!("{chr} was not found in HashMap")
+        println!("");
+        
+        // test v
+        let (chrs, intersect) = intersect_v(&mut bed_a, &mut bed_b);
+        for chr in &chrs {
+            match intersect.get(chr) {
+                Some(v) => {
+                    for record in v {
+                        println!("{:?}", record);
+                    }
+                },
+                None => println!("{chr} was not found in HashMap")
+            }
         }
+        println!("");
     }
-    println!("");
-}
+
+} // mod tests
