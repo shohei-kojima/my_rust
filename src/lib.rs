@@ -1,3 +1,6 @@
+//! Just some custom Rust codes for bioinformatics
+
+
 extern crate bio;
 
 pub mod utils;
