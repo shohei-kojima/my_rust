@@ -5,20 +5,19 @@ use std::collections::{HashMap, HashSet};
 
 static INTERSECT_KEEP_DUPLICATE: bool = true;
 static INTERSECT_DROP_DUPLICATE: bool = false;
-static BED_RECORD_NO_ATTRIBUTION: bool = true;
 
 
 /// Stores one bed record.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BedRecord<T> {
     chr:    String,
-    start:  i64,
-    end:    i64,
+    start:  u64,
+    end:    u64,
     attr:   T,
 }
 
 impl<T> BedRecord<T> {
-    pub fn new<I: Into<i64>>(chr: String, start: I, end: I, attr: T) -> Self {
+    pub fn new<I: Into<u64>>(chr: String, start: I, end: I, attr: T) -> Self {
         BedRecord{chr: chr, start: start.into(), end: end.into(), attr: attr}
     }
 }
@@ -266,7 +265,7 @@ pub fn intersect_v<'a, T1, T2>(a: &'a mut BedRecords<T1>,
 
 
 /// Similar func as `bedtools merge`
-pub fn merge<T>(a: &mut BedRecords<T>) -> BedRecords<bool> {
+pub fn merge<T>(a: &mut BedRecords<T>) -> BedRecords<()> {
     let mut merged = BedRecords::new();
     let mut s;
     let mut e;
@@ -281,14 +280,14 @@ pub fn merge<T>(a: &mut BedRecords<T>) -> BedRecords<bool> {
         e = a.map[chr][0].end.clone();
         for r in &(a.map[chr]) {
             if r.start > e {
-                merged.push(BedRecord::new(chr.clone(), s, e, BED_RECORD_NO_ATTRIBUTION));
+                merged.push(BedRecord::new(chr.clone(), s, e, ()));
                 s = r.start.clone();
                 e = r.end.clone();
             } else {
                 e = r.end.clone();
             }
         }
-        merged.push(BedRecord::new(chr.clone(), s, e, BED_RECORD_NO_ATTRIBUTION));
+        merged.push(BedRecord::new(chr.clone(), s, e, ()));
     }
     if merged.chrs.len() > 0 {
         merged.sort_chrnames();
@@ -296,6 +295,79 @@ pub fn merge<T>(a: &mut BedRecords<T>) -> BedRecords<bool> {
     merged
 }
 
+
+#[inline]
+fn get_larger(x: &u64, y: &u64) -> u64 {
+    if *x >= *y { (*x).clone() }
+    else        { (*y).clone() }
+}
+
+#[inline]
+fn get_smaller(x: &u64, y: &u64) -> u64 {
+    if *x < *y { (*x).clone() }
+    else       { (*y).clone() }
+}
+
+#[derive(Clone,Debug,PartialEq,Eq)]
+struct SimpleRange {
+    s: u64,
+    e: u64,
+}
+
+
+/// Similar func as simple `bedtools intersect -a input1.bed -b input2.bed`
+pub fn intersect_a<'a, T1: Clone, T2>(a: &'a mut BedRecords<T1>, 
+                                      b: &'a mut BedRecords<T2>) 
+        -> BedRecords<T1> {
+    // make a vector
+    let mut new_bed = BedRecords::new();
+    
+    // Construct tree
+    let mut tree;
+    let mut tmp_v: Vec<SimpleRange> = Vec::new(); 
+    let mut n: u64;
+    
+    if ! a.is_chr_sorted { a.sort_chrnames(); }
+    if ! b.is_chr_sorted { b.sort_chrnames(); }
+    for chr in &(b.sorted_chrs) {
+        // if not chr in a, skip
+        if ! a.map.contains_key(chr) { continue; }
+        
+        // initialize tree, serial numbering, set
+        tree = IntervalTree::new();
+        for r in &(b.map[chr]) {
+            tree.insert(r.start .. r.end, ());
+        }
+        for r in &(a.map[chr]) {
+            n = 0;
+            for i in tree.find(r.start .. r.end) {
+                tmp_v.push(SimpleRange{ s: get_larger(&(r.start), &(i.interval().start)), e: get_smaller(&(r.end), &(i.interval().end))});
+                n += 1;
+            }
+            if n >= 1 {
+                tmp_v.sort_by(|a, b|
+                    if a.s == b.s {
+                        a.e.cmp(&(b.e))
+                    } else {
+                        a.s.cmp(&(b.s))
+                    }
+                );
+                let mut s = tmp_v[0].s;
+                let mut e = tmp_v[0].e;
+                if n >= 2 {
+                    for v in &mut tmp_v[1..(n as usize)] {
+                        if v.s < s { s = v.s; }
+                        if v.e > e { e = v.e; }
+                    }
+                }
+                let bed = BedRecord::new(chr.clone(), s, e, r.attr.clone());
+                new_bed.push(bed);
+                tmp_v.clear();
+            }
+        }
+    }
+    new_bed
+}
 
 
 
@@ -305,13 +377,13 @@ mod tests {
 
     #[test]
     fn test_intersect() {
-        let bed1 = BedRecord::new("chr1".to_string(), 100, 200, vec!["aa", "bb"]);
-        let bed2 = BedRecord::new("chr1".to_string(), 150, 250, vec!["cc", "dd"]);
-        let bed3 = BedRecord::new("chr2".to_string(), 100, 200, vec!["ccc", "ddd"]);
-        let bed4 = BedRecord::new("chr2".to_string(), 150, 250, vec!["ccc", "ddd"]);
-        let bed5 = BedRecord::new("chr1".to_string(), 120, 160, [11, 22]);
-        let bed6 = BedRecord::new("chr1".to_string(), 130, 145, [33, 44]);
-        let bed7 = BedRecord::new("chr2".to_string(), 120, 130, [55, 66]);
+        let bed1 = BedRecord::new("chr1".to_string(), 100_u32, 200_u32, vec!["aa", "bb"]);
+        let bed2 = BedRecord::new("chr1".to_string(), 150_u32, 250_u32, vec!["cc", "dd"]);
+        let bed3 = BedRecord::new("chr2".to_string(), 100_u32, 200_u32, vec!["ccc", "ddd"]);
+        let bed4 = BedRecord::new("chr2".to_string(), 150_u32, 250_u32, vec!["ccc", "ddd"]);
+        let bed5 = BedRecord::new("chr1".to_string(), 120_u32, 160_u32, [11, 22]);
+        let bed6 = BedRecord::new("chr1".to_string(), 110_u32, 145_u32, [33, 44]);
+        let bed7 = BedRecord::new("chr2".to_string(), 120_u32, 130_u32, [55, 66]);
         
         let mut bed_a = BedRecords::new();
         let mut bed_b = BedRecords::new();
@@ -379,6 +451,20 @@ mod tests {
             }
         }
         println!("");
+    
+        // test a
+        let mut bed_ra = intersect_a(&mut bed_a, &mut bed_b);
+        bed_ra.sort_chrnames();
+        for chr in &(bed_ra.sorted_chrs) {
+            match bed_ra.map.get(chr) {
+                Some(v) => {
+                    for record in v {
+                        println!("{:?}", record);
+                    }
+                },
+                None => println!("{chr} was not found in HashMap")
+            }
+        }
+        println!("");
     }
-
 } // mod tests
