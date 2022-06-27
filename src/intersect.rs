@@ -10,10 +10,10 @@ static INTERSECT_DROP_DUPLICATE: bool = false;
 /// Stores one bed record.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BedRecord<T> {
-    chr:    String,
-    start:  u64,
-    end:    u64,
-    attr:   T,
+    pub chr:    String,
+    pub start:  u64,
+    pub end:    u64,
+    pub attr:   T,
 }
 
 impl<T> BedRecord<T> {
@@ -25,11 +25,11 @@ impl<T> BedRecord<T> {
 /// Stores multiple BedRecord objects.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BedRecords<T> {
-    map: HashMap<String, Vec<BedRecord<T>>>,  // (name of chr, vec)
-    chrs: Vec<String>,
-    is_sorted: HashMap<String, bool>,
-    sorted_chrs: Vec<String>,
-    is_chr_sorted: bool,
+    pub map: HashMap<String, Vec<BedRecord<T>>>,  // (name of chr, vec)
+    pub chrs: Vec<String>,
+    pub is_sorted: HashMap<String, bool>,
+    pub sorted_chrs: Vec<String>,
+    pub is_chr_sorted: bool,
 }
 
 impl<T> BedRecords<T> {
@@ -310,8 +310,8 @@ fn get_smaller(x: &u64, y: &u64) -> u64 {
 
 #[derive(Clone,Debug,PartialEq,Eq)]
 struct SimpleRange {
-    s: u64,
-    e: u64,
+    s: u64,  // start
+    e: u64,  // end
 }
 
 
