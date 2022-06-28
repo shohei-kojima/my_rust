@@ -98,16 +98,20 @@ impl FaiRecords {
 
 
 
-/// Fasta reader; store all sequence in memory; read with fai
+/// Fasta reader; store all sequence in memory
+#[derive(Clone, Debug, PartialEq)]
 pub struct FastaRecords {
     pub map: HashMap<String, String>,
+    pub attr: HashMap<String, String>,  // header attributes
     pub fai: FaiRecords,
     pub is_upper: bool,
+    pub is_lower: bool,
 }
 
 impl FastaRecords {
     pub fn new() -> Self {
-        FastaRecords{map: HashMap::new(), fai: FaiRecords::new(), is_upper: false}
+        FastaRecords{map: HashMap::new(), attr: HashMap::new(), fai: FaiRecords::new(), 
+                     is_upper: false, is_lower: false}
     }
     
     pub fn push(&mut self, chr: String, seq: String) {
@@ -122,18 +126,85 @@ impl FastaRecords {
         for (_, value) in &mut(self.map) {
             crate::nucl::to_upper_seq(value); 
         }
+        self.is_upper = true;
+        self.is_lower = false;
     }
     
     pub fn to_lower(&mut self) {
         for (_, value) in &mut(self.map) {
             crate::nucl::to_lower_seq(value); 
         }
+        self.is_upper = false;
+        self.is_lower = true;
     }
     
     pub fn to_rev_comp(&mut self) {
         for (_, value) in &mut(self.map) {
             crate::nucl::to_rev_comp_seq(value); 
         }
+    }
+    
+    /// Takes one chr name and returns &str of the chr sequence
+    pub fn get_seq(&self, chr: &str) -> Option<&str> {
+        match self.map.get(chr) {
+            Some(seq) => Some(&seq),
+            None => None
+        }
+    }
+    
+    /// This reads fasta file with fai file
+    pub fn from_file(fpath: &str) -> FastaRecords {
+        let fapath = PathBuf::from(fpath);
+        if ! fapath.exists() { panic!("fasta file does not exist."); }
+        // make structs for fasta and fai
+        let fai = FaiRecords::from_file(&(fpath.to_string() + ".fai"));
+        let mut fasta = FastaRecords{map: HashMap::new(), attr: HashMap::new(), 
+                                     fai: fai, is_upper: false, is_lower: false};
+        for chr in &(fasta.fai.chrs) {
+            let mut seq = String::new();
+            seq.reserve(fasta.fai.map[chr].length as usize);
+            fasta.map.insert(chr.clone(), seq);
+        }
+        // read fasta
+        let f = File::open(fpath).expect("fai file not found.");
+        let mut chr: String;
+        let mut attr: String;
+        let mut curr_chr = "".to_string();
+        for line in BufReader::new(f).lines() {
+            match line {
+                Ok(mut line) => {
+                    if line.starts_with('>') {
+                        line = line.trim()[1..].to_string();  // delete '>'
+                        let mut offset = 0;
+                        for (n, c) in line.char_indices() {
+                            if c == ' ' || c == '\t' {
+                                offset = n;
+                                break;    
+                            }
+                        }
+                        if offset > 0 {  // if attribution is present
+                            chr =  (&line[.. offset]).to_string();
+                            attr = (&line[offset + 1 ..]).to_string();
+                        } else {
+                            chr = line;
+                            attr = "".to_string();
+                        }
+                        fasta.attr.insert(chr.clone(), attr);  // save attributions
+                        curr_chr = chr;
+                        if ! fasta.map.contains_key(&curr_chr) {
+                            panic!("{} does not found in fai", curr_chr);
+                        }
+                    } else {
+                        match fasta.map.get_mut(&curr_chr) {
+                            Some(seq) => { seq.push_str(line.trim()); },
+                            None => { panic!("{} does not found in fai", curr_chr); }
+                        }
+                    }
+                },
+                Err(e) => { panic!("{}", e); }
+            }
+        }
+        fasta
     }
 }
 
@@ -146,7 +217,7 @@ mod tests {
     
     #[test]
     fn test_fai() {
-        let path = "./test_files/fasta_index.fai".to_string();
+        let path = "./test_files/test.fa.fai".to_string();
         let fai = FaiRecords::from_file(&path);
         let mut n = 0;
         for chr in &(fai.chrs) {
@@ -154,5 +225,13 @@ mod tests {
             n += 1;
             if n == 5 { break; }
         }
+    }
+    
+    #[test]
+    fn test_load_fasta() {
+        let path = "./test_files/test.fa".to_string();
+        let fa = FastaRecords::from_file(&path);
+        println!("{:?}", fa);
+        println!("seq of chr1: {}", fa.get_seq("chr1").unwrap());
     }
 } // mod tests
