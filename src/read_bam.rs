@@ -1,3 +1,6 @@
+// Author: Shohei Kojima @ RIKEN
+
+//! BAM/CRAM file manipulations.
  
 #[inline]
 fn utf8_to_string(v: &[u8]) -> String {

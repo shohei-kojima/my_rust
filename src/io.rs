@@ -1,3 +1,5 @@
+// Author: Shohei Kojima @ RIKEN
+
 //! IO for fasta, fai, fq
 
 use std::collections::{HashMap, HashSet};
@@ -206,6 +208,60 @@ impl FastaRecords {
         }
         fasta
     }
+    
+    /// This reads fasta file WITHOUT fai file
+    pub fn from_file_wo_fai(fpath: &str) -> FastaRecords {
+        let fapath = PathBuf::from(fpath);
+        if ! fapath.exists() { panic!("fasta file does not exist."); }
+        // make structs for fasta and fai
+        let mut fasta = FastaRecords{map: HashMap::new(), attr: HashMap::new(), 
+                                     fai: FaiRecords::new(), is_upper: false, is_lower: false};
+        // read fasta
+        let f = File::open(fpath).expect("fai file not found.");
+        let mut chr: String;
+        let mut attr: String;
+        let mut curr_chr = "".to_string();
+        for line in BufReader::new(f).lines() {
+            match line {
+                Ok(mut line) => {
+                    if line.starts_with('>') {
+                        line = line.trim()[1..].to_string();  // delete '>'
+                        let mut offset = 0;
+                        for (n, c) in line.char_indices() {
+                            if c == ' ' || c == '\t' {
+                                offset = n;
+                                break;    
+                            }
+                        }
+                        if offset > 0 {  // if attribution is present
+                            chr =  (&line[.. offset]).to_string();
+                            attr = (&line[offset + 1 ..]).to_string();
+                        } else {
+                            chr = line;
+                            attr = "".to_string();
+                        }
+                        let mut seq = String::new();
+                        fasta.map.insert(chr.clone(), seq);  // add seq String
+                        fasta.attr.insert(chr.clone(), attr);  // save attributions
+                        fasta.fai.chrs.push(chr.clone());  // add chr in fai
+                        curr_chr = chr;
+                    } else {
+                        match fasta.map.get_mut(&curr_chr) {
+                            Some(seq) => { seq.push_str(line.trim()); },
+                            None => { panic!("{} does not found in fai", curr_chr); }
+                        }
+                    }
+                },
+                Err(e) => { panic!("{}", e); }
+            }
+        }
+        // fill fai information
+        for chr in &(fasta.fai.chrs) {
+            let mut r = FaiRecord::new(chr.clone().to_string(), fasta.map[chr].len() as u64, 0, 0, 0);
+            fasta.fai.map.insert(chr.clone().to_string(), r);
+        }
+        fasta
+    }
 }
 
 
@@ -215,7 +271,7 @@ impl FastaRecords {
 mod tests {
     use crate::io::*;
     
-    #[test]
+    // #[test]
     fn test_fai() {
         let path = "./test_files/test.fa.fai".to_string();
         let fai = FaiRecords::from_file(&path);
@@ -227,10 +283,15 @@ mod tests {
         }
     }
     
-    #[test]
+    // #[test]
     fn test_load_fasta() {
         let path = "./test_files/test.fa".to_string();
         let fa = FastaRecords::from_file(&path);
+        println!("{:?}", fa);
+        println!("seq of chr1: {}", fa.get_seq("chr1").unwrap());
+        
+        let path = "./test_files/test.fa".to_string();
+        let fa = FastaRecords::from_file_wo_fai(&path);
         println!("{:?}", fa);
         println!("seq of chr1: {}", fa.get_seq("chr1").unwrap());
     }

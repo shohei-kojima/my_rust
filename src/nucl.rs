@@ -1,4 +1,6 @@
+// Author: Shohei Kojima @ RIKEN
 
+//! DNA sequence manipulations.
 
 /// To convert from lower case DNA/RNA to upper case
 static TO_UPPER_ARR: [u8; 256] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
@@ -98,7 +100,7 @@ pub fn to_rev_comp_seq(seq: &mut String) {
 mod tests {
     use crate::nucl::*;
     
-    #[test]
+    // #[test]
     fn test_nucl() {
         let dna = "ATCGAC--Nnn--actagcat".to_string();
         
