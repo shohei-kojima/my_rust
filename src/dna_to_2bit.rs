@@ -185,10 +185,10 @@ mod tests {
     // #[test]
     fn test_2bit() {
         let dna = "ACGATCGACTAACGGATCGAGGCGGCGATCATTTCGAGCTAGGACAACATCACACGCGCGATCGAT".to_string();
-        let v = dna_to_2bit_bidirectional_64(&dna, 32);
+        let v = dna_to_2bit_bidirectional_64(&dna, &32);
         println!("{:?}", v.len());
         
-        let v = dna_to_2bit_monodirectional_64(&dna, 32);
+        let v = dna_to_2bit_monodirectional_64(&dna, &32);
         println!("{:?}", v.len());
     }
 } // mod tests
