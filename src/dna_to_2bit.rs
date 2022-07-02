@@ -16,16 +16,17 @@ static dna_to_2bitf_u64: [u64; 256] = {
 static dna_to_2bitr_u64: [u64; 256] = {
     let shift = 62;
     let mut arr: [u64; 256] = [0; 256];
-    arr['A' as u8 as usize] = 0 << shift; arr['a' as u8 as usize] = 0 << shift;
-    arr['T' as u8 as usize] = 1 << shift; arr['t' as u8 as usize] = 1 << shift;
-    arr['G' as u8 as usize] = 2 << shift; arr['g' as u8 as usize] = 2 << shift;
-    arr['C' as u8 as usize] = 3 << shift; arr['c' as u8 as usize] = 3 << shift;
+    arr['A' as u8 as usize] = 1 << shift; arr['a' as u8 as usize] = 1 << shift;
+    arr['T' as u8 as usize] = 0 << shift; arr['t' as u8 as usize] = 0 << shift;
+    arr['G' as u8 as usize] = 3 << shift; arr['g' as u8 as usize] = 3 << shift;
+    arr['C' as u8 as usize] = 2 << shift; arr['c' as u8 as usize] = 2 << shift;
     arr
 };
 
 
 
 /// This converts any-nt DNA to 2bit and stores as u64 in the vector. Reads both forward and reverse strands.
+#[inline]
 pub fn dna_to_2bit_bidirectional_64(seq: &String, kmer_size: &usize) -> Vec<u64> {
     let mut v: Vec<u64> = Vec::new();
     let seqlen = seq.len();
@@ -91,6 +92,7 @@ pub fn dna_to_2bit_bidirectional_64(seq: &String, kmer_size: &usize) -> Vec<u64>
 
 
 /// This converts any-nt DNA to 2bit and stores as u64 in the vector. Only reads forward strand.
+#[inline]
 pub fn dna_to_2bit_monodirectional_64(seq: &String, kmer_size: &usize) -> Vec<u64> {
     let mut v: Vec<u64> = Vec::new();
     let seqlen = seq.len();
