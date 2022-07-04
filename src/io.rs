@@ -100,20 +100,28 @@ impl FaiRecords {
 
 
 
+#[derive(Clone,Debug,PartialEq)]
+pub enum SeqCase {
+    Upper,
+    Lower,
+    Mixed,
+    Unknown,
+}
+
+
 /// Fasta reader; store all sequence in memory
 #[derive(Clone, Debug, PartialEq)]
 pub struct FastaRecords {
     pub map: HashMap<String, String>,
     pub attr: HashMap<String, String>,  // header attributes
     pub fai: FaiRecords,
-    pub is_upper: bool,
-    pub is_lower: bool,
+    pub case: SeqCase,
 }
 
 impl FastaRecords {
     pub fn new() -> Self {
         FastaRecords{map: HashMap::new(), attr: HashMap::new(), fai: FaiRecords::new(), 
-                     is_upper: false, is_lower: false}
+                     case: SeqCase::Unknown}
     }
     
     pub fn push(&mut self, chr: String, seq: String) {
@@ -128,16 +136,14 @@ impl FastaRecords {
         for (_, value) in &mut(self.map) {
             crate::nucl::to_upper_seq(value); 
         }
-        self.is_upper = true;
-        self.is_lower = false;
+        self.case = SeqCase::Upper;
     }
     
     pub fn to_lower(&mut self) {
         for (_, value) in &mut(self.map) {
             crate::nucl::to_lower_seq(value); 
         }
-        self.is_upper = false;
-        self.is_lower = true;
+        self.case = SeqCase::Lower;
     }
     
     pub fn to_rev_comp(&mut self) {
@@ -161,7 +167,7 @@ impl FastaRecords {
         // make structs for fasta and fai
         let fai = FaiRecords::from_file(&(fpath.to_string() + ".fai"));
         let mut fasta = FastaRecords{map: HashMap::new(), attr: HashMap::new(), 
-                                     fai: fai, is_upper: false, is_lower: false};
+                                     fai: fai, case: SeqCase::Unknown};
         for chr in &(fasta.fai.chrs) {
             let mut seq = String::new();
             seq.reserve(fasta.fai.map[chr].length as usize);
@@ -215,7 +221,7 @@ impl FastaRecords {
         if ! fapath.exists() { panic!("fasta file does not exist."); }
         // make structs for fasta and fai
         let mut fasta = FastaRecords{map: HashMap::new(), attr: HashMap::new(), 
-                                     fai: FaiRecords::new(), is_upper: false, is_lower: false};
+                                     fai: FaiRecords::new(), case: SeqCase::Unknown};
         // read fasta
         let f = File::open(fpath).expect("fai file not found.");
         let mut chr: String;
@@ -271,7 +277,7 @@ impl FastaRecords {
 mod tests {
     use crate::io::*;
     
-    // #[test]
+    #[test]
     fn test_fai() {
         let path = "./test_files/test.fa.fai".to_string();
         let fai = FaiRecords::from_file(&path);
@@ -283,7 +289,7 @@ mod tests {
         }
     }
     
-    // #[test]
+    #[test]
     fn test_load_fasta() {
         let path = "./test_files/test.fa".to_string();
         let fa = FastaRecords::from_file(&path);
@@ -291,7 +297,8 @@ mod tests {
         println!("seq of chr1: {}", fa.get_seq("chr1").unwrap());
         
         let path = "./test_files/test.fa".to_string();
-        let fa = FastaRecords::from_file_wo_fai(&path);
+        let mut fa = FastaRecords::from_file_wo_fai(&path);
+        fa.to_upper();
         println!("{:?}", fa);
         println!("seq of chr1: {}", fa.get_seq("chr1").unwrap());
     }
