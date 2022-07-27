@@ -299,13 +299,13 @@ pub fn merge<T>(a: &mut BedRecords<T>) -> BedRecords<()> {
 
 
 #[inline]
-fn get_larger(x: u64, y: u64) -> u64 {
+pub fn get_larger(x: u64, y: u64) -> u64 {
     if x >= y { x }
     else      { y }
 }
 
 #[inline]
-fn get_smaller(x: u64, y: u64) -> u64 {
+pub fn get_smaller(x: u64, y: u64) -> u64 {
     if x < y { x }
     else     { y }
 }
@@ -344,7 +344,7 @@ pub fn intersect_a<'a, T1: Clone, T2>(a: &'a mut BedRecords<T1>,
             n = 0;
             for i in tree.find(r.start .. r.end) {
                 tmp_v.push(SimpleRange{ s: get_larger(r.start, i.interval().start), 
-                                        e: get_smaller(r.end,  i.interval().end)});
+                                        e: get_smaller(r.end,  i.interval().end), });
                 n += 1;
             }
             if n >= 1 {
