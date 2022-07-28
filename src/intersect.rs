@@ -311,9 +311,9 @@ pub fn get_smaller(x: u64, y: u64) -> u64 {
 }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
-struct SimpleRange {
-    s: u64,  // start
-    e: u64,  // end
+pub struct SimpleRange {
+    pub s: u64,  // start
+    pub e: u64,  // end
 }
 
 
