@@ -86,7 +86,7 @@ mod tests {
     use crate::read_bam::*;
     use rust_htslib::bam::ext::BamRecordExtensions;
     
-    #[test]
+    // #[test]
     fn test_bam() {
         let bam_path = "/home/kooojiii/Documents/testdata/bams/1kgp/GRCh38DH/1kgp_30x_NA12878_downsample_5x.bam";
         read_bam(bam_path);

@@ -378,7 +378,7 @@ pub fn intersect_a<'a, T1: Clone, T2>(a: &'a mut BedRecords<T1>,
 mod tests {
     use crate::intersect::*;
 
-    // #[test]
+    #[test]
     fn test_intersect() {
         let bed1 = BedRecord::new("chr1".to_string(), 100_u32, 200_u32, vec!["aa", "bb"]);
         let bed2 = BedRecord::new("chr1".to_string(), 150_u32, 250_u32, vec!["cc", "dd"]);
@@ -460,6 +460,36 @@ mod tests {
         bed_ra.sort_chrnames();
         for chr in &(bed_ra.sorted_chrs) {
             match bed_ra.map.get(chr) {
+                Some(v) => {
+                    for record in v {
+                        println!("{:?}", record);
+                    }
+                },
+                None => println!("{chr} was not found in HashMap")
+            }
+        }
+        println!("-");
+        
+        // test ordering
+        let bed1 = BedRecord::new("chr1".to_string(), 100_u32, 200_u32, vec!["aa", "bb"]);
+        let bed2 = BedRecord::new("chr1".to_string(), 150_u32, 250_u32, vec!["cc", "dd"]);
+        let bed3 = BedRecord::new("chr1".to_string(), 100_u32, 190_u32, vec!["ccc", "ddd"]);
+        let bed4 = BedRecord::new("chr1".to_string(), 250_u32, 350_u32, vec!["ccc", "ddd"]);
+        let bed5 = BedRecord::new("chr1".to_string(), 245_u32, 255_u32, vec!["ccc", "ddd"]);
+        let bed6 = BedRecord::new("chr1".to_string(),  90_u32, 120_u32, vec!["ccc", "ddd"]);
+        let bed7 = BedRecord::new("chr1".to_string(),  95_u32, 105_u32, [55, 66]);
+        let mut bed_a = BedRecords::new();
+        let mut bed_b = BedRecords::new();
+        bed_a.push(bed1);
+        bed_a.push(bed2);
+        bed_a.push(bed3);
+        bed_a.push(bed4);
+        bed_a.push(bed5);
+        bed_a.push(bed6);
+        bed_b.push(bed7);
+        let (chrs, intersect) = intersect_wa(&mut bed_a, &mut bed_b, INTERSECT_DROP_DUPLICATE);
+        for chr in &chrs {
+            match intersect.get(chr) {
                 Some(v) => {
                     for record in v {
                         println!("{:?}", record);

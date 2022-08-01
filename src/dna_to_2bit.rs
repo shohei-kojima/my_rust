@@ -3,7 +3,7 @@
 //! Converts DNA to 2bit.
 
 
-static dna_to_2bitf_u64: [u64; 256] = {
+pub static dna_to_2bitf_u64: [u64; 256] = {
     let shift = 62;
     let mut arr: [u64; 256] = [0; 256];
     arr['A' as u8 as usize] = 0; arr['a' as u8 as usize] = 0;
@@ -13,7 +13,7 @@ static dna_to_2bitf_u64: [u64; 256] = {
     arr
 };
 
-static dna_to_2bitr_u64: [u64; 256] = {
+pub static dna_to_2bitr_u64: [u64; 256] = {
     let shift = 62;
     let mut arr: [u64; 256] = [0; 256];
     arr['A' as u8 as usize] = 1 << shift; arr['a' as u8 as usize] = 1 << shift;
