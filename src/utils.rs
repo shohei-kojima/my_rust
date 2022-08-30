@@ -5,7 +5,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-
 pub fn type_of<T>(_: T) -> String {
     std::any::type_name::<T>().to_string()
 }
@@ -23,9 +22,9 @@ pub fn is_dir(fname: &str) -> bool {
 }
 
 pub fn makedirs_exist_ok(path: &str) -> std::io::Result<()> {
-    if ! path_exists(path) {
+    if !path_exists(path) {
         fs::create_dir_all(PathBuf::from(path))?;
-    } else if ! is_dir(path) {
+    } else if !is_dir(path) {
         panic!("{path} is not directory.");
     }
     Ok(())
