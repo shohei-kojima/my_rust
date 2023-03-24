@@ -29,3 +29,26 @@ pub fn makedirs_exist_ok(path: &str) -> std::io::Result<()> {
     }
     Ok(())
 }
+
+/// Check whether a file exists.
+/// Exit with 1 if the file does not exist.
+pub fn file_exist_check(file_path: &str) {
+    if !path_exists(file_path) {
+        panic!("Input file ({}) does not exist.", file_path);
+    } else {
+        println!("Input file ({}) found.", file_path);
+    }
+}
+
+/// Check whether a file does not exist.
+pub fn file_absence_check(file_path: &str, overwrite: u8) {
+    if path_exists(file_path) {
+        if overwrite == 0 {
+            println!("Warn: Output will be overwritten in {}.", file_path);
+        } else {
+            panic!("Output file ({}) already exists.", file_path);
+        }
+    } else {
+        println!("Output will be written in ({}).", file_path);
+    }
+}
